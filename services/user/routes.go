@@ -25,12 +25,11 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// get json payload
-	var payload types.RegisterUserPayload
+	payload := types.RegisterUserPayload{}
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
@@ -44,8 +43,8 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check if user currently exists
-	_, err := h.store.GetUserByEmail(payload.Email)
-	if err != nil {
+	user, err := h.store.GetUserByEmail(payload.Email)
+	if err != nil && err.Error() != "user not found" || user != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
 		return
 	}

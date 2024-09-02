@@ -25,7 +25,6 @@ func TestUserServiceHandlers(t *testing.T) {
 		marshalled, _ := json.Marshal(payload)
 
 		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(marshalled))
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -50,7 +49,6 @@ func TestUserServiceHandlers(t *testing.T) {
 		marshalled, _ := json.Marshal(payload)
 
 		req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(marshalled))
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -75,6 +73,7 @@ func (m *mockUserStore) GetUserByEmail(email string) (*types.User, error) {
 func (m *mockUserStore) GetUserById(id int) (*types.User, error) {
 	return nil, nil
 }
+
 func (m *mockUserStore) CreateUser(types.User) error {
 	return nil
 }

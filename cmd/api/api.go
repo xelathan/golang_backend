@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -29,7 +30,15 @@ func (s *APIServer) Run() error {
 	userHandler := user.NewHandler(userStore)
 	userHandler.RegisterRoutes(subrouter)
 
+	subrouter.HandleFunc("/", handleHome).Methods("GET")
+
 	log.Println("Listening on", s.addr)
 
 	return http.ListenAndServe(s.addr, router)
+}
+
+func handleHome(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+
+	fmt.Fprintf(w, "Success!")
 }
