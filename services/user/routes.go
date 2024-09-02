@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+	"github.com/xelathan/golang_backend/config"
 	"github.com/xelathan/golang_backend/services/auth"
 	"github.com/xelathan/golang_backend/types"
 	"github.com/xelathan/golang_backend/utils"
@@ -25,6 +26,45 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	payload := types.LoginUserPayload{}
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// validate the payload
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors))
+		return
+	}
+
+	// check if user currently exists
+	user, err := h.store.GetUserByEmail(payload.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s doest not exist", payload.Email))
+		return
+	}
+
+	if auth.CheckHashedPassword(payload.Password, user.Password) != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("incorrect password: %s", payload.Password))
+		return
+	}
+
+	secret := []byte(config.Envs.JWTSecret)
+
+	token, err := auth.CreateJWT(secret, user.ID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = utils.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +110,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = utils.WriteJSON(w, http.StatusCreated, nil)
+	err = utils.WriteJSON(w, http.StatusCreated, map[string]string{"registered": payload.Email})
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return

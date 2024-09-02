@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -34,3 +35,13 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 }
 
 var Validate = validator.New()
+
+func ValidateDecimalPlaces(fl validator.FieldLevel) bool {
+	value, ok := fl.Field().Interface().(float64)
+	if !ok {
+		return false
+	}
+
+	truncated := math.Trunc(value * 100)
+	return value*100 == truncated
+}
