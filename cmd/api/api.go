@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/xelathan/golang_backend/services/cart"
+	"github.com/xelathan/golang_backend/services/order"
 	"github.com/xelathan/golang_backend/services/product"
 	"github.com/xelathan/golang_backend/services/user"
 )
@@ -25,17 +27,22 @@ func NewAPIServer(addr string, db *sql.DB) *APIServer {
 
 func (s *APIServer) Run() error {
 	router := mux.NewRouter()
-	subrouter := router.PathPrefix("/api/v1").Subrouter()
+	subRouter := router.PathPrefix("/api/v1").Subrouter()
 
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
-	userHandler.RegisterRoutes(subrouter)
+	userHandler.RegisterRoutes(subRouter)
 
 	productStore := product.NewStore(s.db)
 	productHandler := product.NewHandler(productStore)
-	productHandler.RegisterRoutes(subrouter)
+	productHandler.RegisterRoutes(subRouter)
 
-	subrouter.HandleFunc("/", handleHome).Methods("GET")
+	orderStore := order.NewStore(s.db)
+
+	cartHandler := cart.NewHandler(orderStore, productStore, userStore)
+	cartHandler.RegisterRoutes(subRouter)
+
+	subRouter.HandleFunc("/", handleHome).Methods("GET")
 
 	log.Println("Listening on", s.addr)
 
