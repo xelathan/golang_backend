@@ -10,15 +10,15 @@ import (
 )
 
 type Config struct {
-	PublicHost string
-	Port       string
-
+	PublicHost             string
+	Port                   string
 	DBUser                 string
 	DBPassword             string
 	DBAddress              string
 	DBName                 string
 	JWTExpirationInSeconds int64
 	JWTSecret              string
+	EncryptionKey          string
 }
 
 var Envs = initConfig()
@@ -38,6 +38,7 @@ func initConfig() Config {
 		DBName:                 getEnv("DB_NAME", "golang_db"),
 		JWTExpirationInSeconds: getEnvInt("JWT_EXPIRATION_IN_SECONDS", 86400),
 		JWTSecret:              getEnv("JWT_SECRET", "fG*7j_2L@9m$3k-5n1*1p^6q&4r!0s(8t)"),
+		EncryptionKey:          getEnv("ENCRYPTION_KEY", "8e2RlP9aTnC6d5sB"),
 	}
 }
 

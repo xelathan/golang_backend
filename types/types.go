@@ -1,6 +1,8 @@
 package types
 
-import "time"
+import (
+	"time"
+)
 
 type RegisterUserPayload struct {
 	FirstName string `json:"firstName" validate:"required"`
@@ -14,6 +16,12 @@ type LoginUserPayload struct {
 	Password string `json:"password" validate:"required,min=3,max=16"`
 }
 
+type SetAddressesPayload struct {
+	Default   string `json:"default" validate:"required"`
+	Secondary string `json:"secondary"`
+	Tertiary  string `json:"tertiary"`
+}
+
 type User struct {
 	ID        int       `json:"id"`
 	FirstName string    `json:"firstName"`
@@ -23,10 +31,19 @@ type User struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+type UserAddresses struct {
+	UserId    int    `json:userId`
+	Default   string `json:default`
+	Secondary string `json:secondary`
+	Tertiary  string `json:tertiary`
+}
+
 type UserStore interface {
 	GetUserByEmail(email string) (*User, error)
 	GetUserById(id int) (*User, error)
 	CreateUser(User) error
+	GetUserAddressById(id int) (*UserAddresses, error)
+	CreateUpdateAddress(*UserAddresses) error
 }
 
 type CreateProductPayload struct {
@@ -52,6 +69,7 @@ type ProductStore interface {
 	GetProductsByID(productIDs []int) ([]Product, error)
 	CreateProduct(Product) error
 	UpdateProduct(Product) error
+	UpdateProductBatch(map[int]Product) error
 }
 
 type Order struct {

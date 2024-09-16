@@ -1,6 +1,7 @@
 package cart
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -14,13 +15,15 @@ type Handler struct {
 	orderStore   types.OrderStore
 	productStore types.ProductStore
 	userStore    types.UserStore
+	db           *sql.DB
 }
 
-func NewHandler(orderStore types.OrderStore, productStore types.ProductStore, userStore types.UserStore) *Handler {
+func NewHandler(orderStore types.OrderStore, productStore types.ProductStore, userStore types.UserStore, db *sql.DB) *Handler {
 	return &Handler{
 		orderStore:   orderStore,
 		productStore: productStore,
 		userStore:    userStore,
+		db:           db,
 	}
 }
 
@@ -53,14 +56,27 @@ func (h *Handler) handleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get products
-	products, err := h.productStore.GetProductsByID(ids)
+	tx, err := h.db.Begin()
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+	// get products
+	products, err := h.productStore.GetProductsByID(ids)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		tx.Rollback()
+		return
+	}
 
 	orderId, totalPrice, err := h.createOrder(products, cart_payload.Items, userId)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		tx.Rollback()
+		return
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return

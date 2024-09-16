@@ -77,3 +77,10 @@ func (m *mockUserStore) GetUserById(id int) (*types.User, error) {
 func (m *mockUserStore) CreateUser(types.User) error {
 	return nil
 }
+
+func (m *mockUserStore) GetUserAddressById(id int) (*types.UserAddresses, error) {
+	return nil, nil
+}
+func (m *mockUserStore) CreateUpdateAddress(*types.UserAddresses) error {
+	return nil
+}

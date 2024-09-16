@@ -39,7 +39,7 @@ func (s *APIServer) Run() error {
 
 	orderStore := order.NewStore(s.db)
 
-	cartHandler := cart.NewHandler(orderStore, productStore, userStore)
+	cartHandler := cart.NewHandler(orderStore, productStore, userStore, s.db)
 	cartHandler.RegisterRoutes(subRouter)
 
 	subRouter.HandleFunc("/", handleHome).Methods("GET")

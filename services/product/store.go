@@ -91,3 +91,32 @@ func (s *Store) UpdateProduct(product types.Product) error {
 
 	return nil
 }
+
+func (s *Store) UpdateProductBatch(products map[int]types.Product) error {
+	if len(products) == 0 {
+		return nil
+	}
+
+	query := "UPDATE products SET quantity = CASE id"
+	ids := []int{}
+
+	for _, product := range products {
+		query += fmt.Sprintf(" WHEN %d THEN %d", product.ID, product.Quantity)
+		ids = append(ids, product.ID)
+	}
+	query += " END WHERE id IN ("
+	for i := range len(products) {
+		if i > 0 {
+			query += ","
+		}
+		query += fmt.Sprintf("%d", ids[i])
+	}
+	query += ");"
+
+	_, err := s.db.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

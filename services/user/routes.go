@@ -23,6 +23,7 @@ func NewHandler(store types.UserStore) *Handler {
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/login", h.handleLogin).Methods("POST")
 	router.HandleFunc("/register", h.handleRegister).Methods("POST")
+	router.HandleFunc("/set_addresses", auth.WithJWTAuth(h.handleSetAddresses, h.store)).Methods(http.MethodPost)
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -115,4 +116,67 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+}
+
+func (h *Handler) handleSetAddresses(w http.ResponseWriter, r *http.Request) {
+	// read payload of setting addresses
+	payload := types.SetAddressesPayload{}
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// validate of the user has passed in valid JWT token with valid userId in claims
+	userId := auth.GetUserIdFromContext(r.Context())
+
+	if userId == -1 {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid userId"))
+		return
+	}
+
+	encryptedDefault, err := encryptAddress(payload.Default)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	encryptedSecondary, err := encryptAddress(payload.Secondary)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	encryptedTertiary, err := encryptAddress(payload.Tertiary)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	userAddresses := types.UserAddresses{
+		UserId:    userId,
+		Default:   encryptedDefault,
+		Secondary: encryptedSecondary,
+		Tertiary:  encryptedTertiary,
+	}
+
+	// insert addresses into store
+	if err := h.store.CreateUpdateAddress(&userAddresses); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, map[string]string{"status": "success"})
+}
+
+func encryptAddress(address string) (string, error) {
+	if address != "" {
+		encrypted_address, err := EncryptAES(address, []byte(config.Envs.EncryptionKey))
+		if err != nil {
+			return "", err
+		}
+
+		return encrypted_address, nil
+	}
+
+	return "", nil
 }
