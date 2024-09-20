@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/xelathan/golang_backend/config"
-	"github.com/xelathan/golang_backend/services/user"
+	"github.com/xelathan/golang_backend/services/auth"
 	"github.com/xelathan/golang_backend/types"
 )
 
@@ -43,6 +43,7 @@ func (h *Handler) createOrder(products []types.Product, items []types.CartItem, 
 	for _, item := range items {
 		product := productMap[item.ProductID]
 		product.Quantity -= item.Quantity
+		productMap[item.ProductID] = product
 	}
 
 	if err := h.productStore.UpdateProductBatch(productMap); err != nil {
@@ -50,7 +51,7 @@ func (h *Handler) createOrder(products []types.Product, items []types.CartItem, 
 	}
 
 	// query for user address
-	userAddresses, err := h.userStore.GetUserAddressById(userID)
+	userAddresses, err := h.userStore.GetUserAddressesByUserId(userID)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -63,7 +64,7 @@ func (h *Handler) createOrder(products []types.Product, items []types.CartItem, 
 	orderId, err := h.orderStore.CreateOrder(types.Order{
 		UserId:  userID,
 		Total:   totalPrice,
-		Status:  "pending",
+		Status:  types.Pending,
 		Address: addressToUse,
 	})
 
@@ -113,32 +114,31 @@ func calculateTotalPrice(items []types.CartItem, productMap map[int]types.Produc
 	return totalPrice
 }
 
-func getAddressToUse(addresses *types.UserAddresses) (string, error) {
-	if addresses.Default != "" {
-		ad, err := decryptAddress(addresses.Default)
-		if err != nil {
-			return "", err
+func getAddressToUse(addresses []types.UserAddresses) (string, error) {
+	// Process addresses based on priority
+	addressMap := map[types.AddressType]string{}
+	for _, addr := range addresses {
+		if _, exists := addressMap[addr.AddressType]; !exists {
+			addressMap[addr.AddressType] = addr.Address
 		}
-		return ad, nil
-	} else if addresses.Secondary != "" {
-		ad, err := decryptAddress(addresses.Secondary)
-		if err != nil {
-			return "", err
-		}
-		return ad, nil
-	} else if addresses.Tertiary != "" {
-		ad, err := decryptAddress(addresses.Tertiary)
-		if err != nil {
-			return "", err
-		}
-		return ad, nil
-	} else {
-		return "", fmt.Errorf("no address set for user")
 	}
+
+	for _, addressType := range []types.AddressType{types.First, types.Secondary, types.Tertiary} {
+		if addr, exists := addressMap[addressType]; exists {
+			da, err := decryptAddress(addr)
+			if err != nil {
+				return "", err
+			}
+
+			return da, nil
+		}
+	}
+
+	return "", fmt.Errorf("no address set")
 }
 
 func decryptAddress(cryptoText string) (string, error) {
-	decryptedAddress, err := user.DecryptAES(cryptoText, []byte(config.Envs.EncryptionKey))
+	decryptedAddress, err := auth.DecryptAES(cryptoText, []byte(config.Envs.EncryptionKey))
 	if err != nil {
 		return "", err
 	}

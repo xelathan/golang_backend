@@ -134,29 +134,16 @@ func (h *Handler) handleSetAddresses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encryptedDefault, err := encryptAddress(payload.Default)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	encryptedSecondary, err := encryptAddress(payload.Secondary)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	encryptedTertiary, err := encryptAddress(payload.Tertiary)
+	encryptedDefault, err := encryptAddress(payload.Address)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	userAddresses := types.UserAddresses{
-		UserId:    userId,
-		Default:   encryptedDefault,
-		Secondary: encryptedSecondary,
-		Tertiary:  encryptedTertiary,
+		UserId:      userId,
+		Address:     encryptedDefault,
+		AddressType: payload.AddressType,
 	}
 
 	// insert addresses into store
@@ -170,7 +157,7 @@ func (h *Handler) handleSetAddresses(w http.ResponseWriter, r *http.Request) {
 
 func encryptAddress(address string) (string, error) {
 	if address != "" {
-		encrypted_address, err := EncryptAES(address, []byte(config.Envs.EncryptionKey))
+		encrypted_address, err := auth.EncryptAES(address, []byte(config.Envs.EncryptionKey))
 		if err != nil {
 			return "", err
 		}

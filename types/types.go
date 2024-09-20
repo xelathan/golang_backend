@@ -16,10 +16,18 @@ type LoginUserPayload struct {
 	Password string `json:"password" validate:"required,min=3,max=16"`
 }
 
+// Define an enum type for address types
+type AddressType string
+
+const (
+	First     AddressType = "first"
+	Secondary AddressType = "secondary"
+	Tertiary  AddressType = "tertiary"
+)
+
 type SetAddressesPayload struct {
-	Default   string `json:"default" validate:"required"`
-	Secondary string `json:"secondary"`
-	Tertiary  string `json:"tertiary"`
+	AddressType AddressType `json:"address_type" validate:"required,oneof=first secondary tertiary"`
+	Address     string      `json:"address" validate:"required"`
 }
 
 type User struct {
@@ -32,17 +40,17 @@ type User struct {
 }
 
 type UserAddresses struct {
-	UserId    int    `json:userId`
-	Default   string `json:default`
-	Secondary string `json:secondary`
-	Tertiary  string `json:tertiary`
+	Id          int         `json:id`
+	UserId      int         `json:userId`
+	Address     string      `json:address`
+	AddressType AddressType `json:address_type`
 }
 
 type UserStore interface {
 	GetUserByEmail(email string) (*User, error)
 	GetUserById(id int) (*User, error)
 	CreateUser(User) error
-	GetUserAddressById(id int) (*UserAddresses, error)
+	GetUserAddressesByUserId(id int) ([]UserAddresses, error)
 	CreateUpdateAddress(*UserAddresses) error
 }
 
@@ -68,7 +76,6 @@ type ProductStore interface {
 	GetProducts() ([]Product, error)
 	GetProductsByID(productIDs []int) ([]Product, error)
 	CreateProduct(Product) error
-	UpdateProduct(Product) error
 	UpdateProductBatch(map[int]Product) error
 }
 
@@ -90,9 +97,27 @@ type OrderItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+type OrderHistory struct {
+	OrderId   int       `json:orderId`
+	Total     float64   `json:total`
+	Status    string    `json:status`
+	Address   string    `json:address`
+	CreatedAt time.Time `json:"createdAt"`
+	ProductId int       `json:productId`
+	Quantity  int       `json:quantity`
+	Price     float64   `json:price`
+}
+
+type CancelOrderPayload struct {
+	OrderId int `json:orderId`
+}
+
 type OrderStore interface {
 	CreateOrder(Order) (int, error)
 	CreateOrderItem(OrderItem) error
+	UpdateOrder(Order) error
+	GetOrderById(int) (*Order, error)
+	GetOrderHistoryByUserId(int) ([]OrderHistory, error)
 }
 
 type CartItem struct {
@@ -103,3 +128,9 @@ type CartItem struct {
 type CartCheckoutPayload struct {
 	Items []CartItem `json:"items" validate:"required"`
 }
+
+const (
+	Pending   string = "pending"
+	Completed string = "completed"
+	Cancelled string = "cancelled"
+)

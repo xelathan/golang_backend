@@ -38,6 +38,8 @@ func (s *APIServer) Run() error {
 	productHandler.RegisterRoutes(subRouter)
 
 	orderStore := order.NewStore(s.db)
+	orderHandler := order.NewHandler(userStore, orderStore, productStore, s.db)
+	orderHandler.RegisterRoutes(subRouter)
 
 	cartHandler := cart.NewHandler(orderStore, productStore, userStore, s.db)
 	cartHandler.RegisterRoutes(subRouter)

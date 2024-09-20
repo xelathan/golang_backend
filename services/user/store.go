@@ -78,22 +78,20 @@ func (s *Store) CreateUser(user types.User) error {
 	return nil
 }
 
-func (s *Store) GetUserAddressById(id int) (*types.UserAddresses, error) {
+func (s *Store) GetUserAddressesByUserId(id int) ([]types.UserAddresses, error) {
 	rows, err := s.db.Query("SELECT * FROM user_addresses WHERE userId = ?", id)
 	if err != nil {
 		return nil, err
 	}
 
-	addresses := new(types.UserAddresses)
+	addresses := []types.UserAddresses{}
 	for rows.Next() {
-		addresses, err = scanRowIntoUserAddresses(rows)
+		address, err := scanRowIntoUserAddresses(rows)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	if addresses.UserId == 0 {
-		return nil, fmt.Errorf("user address not found")
+		addresses = append(addresses, *address)
 	}
 
 	return addresses, nil
@@ -101,7 +99,7 @@ func (s *Store) GetUserAddressById(id int) (*types.UserAddresses, error) {
 
 func scanRowIntoUserAddresses(rows *sql.Rows) (*types.UserAddresses, error) {
 	user_addresses := new(types.UserAddresses)
-	err := rows.Scan(&user_addresses.UserId, &user_addresses.Default, &user_addresses.Secondary, &user_addresses.Tertiary)
+	err := rows.Scan(&user_addresses.Id, &user_addresses.UserId, &user_addresses.AddressType, &user_addresses.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +108,8 @@ func scanRowIntoUserAddresses(rows *sql.Rows) (*types.UserAddresses, error) {
 }
 
 func (s *Store) CreateUpdateAddress(addresses *types.UserAddresses) error {
-	query := "INSERT INTO user_addresses (userId, `default`, secondary, tertiary) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE `default` = VALUES(`default`), secondary = VALUES(secondary), tertiary = VALUES(tertiary)"
-	_, err := s.db.Exec(query, addresses.UserId, addresses.Default, addresses.Secondary, addresses.Tertiary)
+	query := "INSERT INTO user_addresses (userId, address_type, address) VALUES (?,?,?) ON DUPLICATE KEY UPDATE address = VALUES(address)"
+	_, err := s.db.Exec(query, addresses.UserId, addresses.AddressType, addresses.Address)
 	if err != nil {
 		return err
 	}

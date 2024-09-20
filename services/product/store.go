@@ -82,16 +82,6 @@ func (s *Store) GetProductsByID(productIDs []int) ([]types.Product, error) {
 	return products, nil
 }
 
-func (s *Store) UpdateProduct(product types.Product) error {
-	_, err := s.db.Exec("UPDATE products SET name = ?, price = ?, image = ?, description = ?, quantity = ? WHERE id = ?", product.Name, product.Price, product.Image, product.Description, product.Quantity, product.ID)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (s *Store) UpdateProductBatch(products map[int]types.Product) error {
 	if len(products) == 0 {
 		return nil
